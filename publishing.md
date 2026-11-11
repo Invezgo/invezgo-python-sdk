@@ -24,7 +24,7 @@ Dokumen ini menjelaskan langkah-langkah untuk mempublish Invezgo SDK ke PyPI.
 
 2. **Test install dari local**
    ```bash
-   pip install dist/invezgo_sdk-3.0.0.tar.gz
+   pip install dist/invezgo_sdk-3.1.0.tar.gz
    ```
 
 ## Publishing ke Test PyPI

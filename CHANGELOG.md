@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-11-11
+
+Regenerated from the latest OpenAPI spec (Invezgo API 1.2, 109 endpoints).
+
+### Added
+- `analysis.get_flow_of_funds(code, type, *, limit=None)`: Flow of Funds (revenue → profit flow per period, with nodes, links and bridge) for `/analysis/flow-of-funds/{code}`.
+- `analysis.get_free_float(code, range)`: free float composition over time for `/analysis/free-float/{code}`.
+- `type` filter on `analysis.get_disclosure` (30 disclosure categories).
+- `id` field on disclosure items; `foreign_*` breakdown fields on shareholder classification and classify-table responses.
+
+### Changed
+- Screener and alert `formula` now accepts up to 2048 characters.
+- Order book `time` accepts `HH:mm:ss` as well as `HH:mm`.
+- Usage logs `limit` maximum raised to 520000.
+
+### Fixed
+- Package `Repository` URL now points to https://github.com/Invezgo/invezgo-python-sdk.
+
 ## [3.0.0] - 2026-10-27
 
 Rewrite generated 1:1 from the official OpenAPI spec (Invezgo API 1.2, 107 endpoints).

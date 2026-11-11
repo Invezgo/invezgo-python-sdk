@@ -2,7 +2,7 @@
 
 > Dibuat otomatis dari spesifikasi OpenAPI resmi oleh `codegen/gen_python.py`. Jangan edit manual.
 
-Semua method tersedia di `InvezgoClient` (mis. `client.analysis.get_stock_list()`). Total 107 endpoint.
+Semua method tersedia di `InvezgoClient` (mis. `client.analysis.get_stock_list()`). Total 109 endpoint.
 
 Cache tier: `default` = TTL `cache.ttl` (60 dtk), `realtime` = TTL `cache.realtime_ttl` (5 dtk), `none` = tidak di-cache.
 
@@ -56,6 +56,7 @@ Indonesia stock market data: lists, prices, charts, broker flow, shareholders, f
 | [`get_shareholder_ksei`](#analysisget_shareholder_ksei) | `GET /analysis/shareholder/ksei/{code}` | Stock Shareholder KSEI | `default` |
 | [`get_shareholder_classification`](#analysisget_shareholder_classification) | `GET /analysis/shareholder/classification/{code}` | Stock Shareholder Full Classification | `default` |
 | [`get_shareholder_classify_table`](#analysisget_shareholder_classify_table) | `GET /analysis/shareholder/classify-table/{code}` | Stock Shareholder Classification Table | `default` |
+| [`get_free_float`](#analysisget_free_float) | `GET /analysis/free-float/{code}` | Stock Free Float | `default` |
 | [`get_summary_stock`](#analysisget_summary_stock) | `GET /analysis/summary/stock/{code}` | Stock Broker Summary | `default` |
 | [`get_summary_broker`](#analysisget_summary_broker) | `GET /analysis/summary/broker/{code}` | Broker Broker Summary | `default` |
 | [`get_sector_stalker`](#analysisget_sector_stalker) | `GET /analysis/stalker/sector` | Sector Stalker | `realtime` |
@@ -83,6 +84,7 @@ Indonesia stock market data: lists, prices, charts, broker flow, shareholders, f
 | [`get_financial_statement_chart`](#analysisget_financial_statement_chart) | `GET /analysis/financial-statement-chart/{code}` | Stock Financial Statement Chart | `default` |
 | [`get_keystat`](#analysisget_keystat) | `GET /analysis/keystat/{code}` | Stock Key Statistics | `default` |
 | [`get_keystat_chart`](#analysisget_keystat_chart) | `GET /analysis/keystat-chart/{code}` | Stock Key Statistics Chart | `default` |
+| [`get_flow_of_funds`](#analysisget_flow_of_funds) | `GET /analysis/flow-of-funds/{code}` | Stock Flow of Funds | `default` |
 | [`get_calendar`](#analysisget_calendar) | `GET /analysis/calendar` | Stock Corporate Action Calendar | `default` |
 | [`get_news`](#analysisget_news) | `GET /analysis/news` | Stock News | `default` |
 | [`get_disclosure`](#analysisget_disclosure) | `GET /analysis/disclosure` | Stock Disclosure Information | `default` |
@@ -338,7 +340,7 @@ Get order book data for a stock with the latest date or historical data at speci
 | `code` | `str` | ya |  | Kode saham emiten yang tercatat di BEI, mis. `BBCA`. Tidak case-sensitive. Daftar kode tersedia di `/analysis/list/stock`. |
 | `market` | `OrderBookMarket ("RG", "NG", "TN")` | ya |  | Jenis pasar: `RG` = Pasar Reguler, `NG` = Pasar Negosiasi, `TN` = Pasar Tunai. Gunakan `RG` untuk analisis pergerakan harga pada umumnya. |
 | `date` | `Union[str, datetime.date]` | tidak |  | Tanggal order book historis (`YYYY-MM-DD`), tersedia mulai `2026-03-25`. Wajib dikirim bersama `time`; kosongkan keduanya untuk data realtime. |
-| `time` | `str` | tidak |  | Jam snapshot order book dalam WIB, format `HH:mm` pada jam perdagangan (09:00–15:59). Wajib dikirim bersama `date`. |
+| `time` | `str` | tidak |  | Jam snapshot order book dalam WIB, format `HH:mm` atau `HH:mm:ss` pada jam perdagangan (09:00–15:59); mengembalikan snapshot terdekat pada tanggal tersebut. Wajib dikirim bersama `date`. |
 
 Return: `OrderBookResponse`
 
@@ -634,6 +636,24 @@ Get latest shareholder data with investor classifications in table format.
 | `code` | `str` | ya |  | Kode saham emiten yang tercatat di BEI, mis. `BBCA`. Tidak case-sensitive. Daftar kode tersedia di `/analysis/list/stock`. |
 
 Return: `Optional[ShareholderClassifyTableResponse]`
+
+
+### analysis.get_free_float
+
+```python
+client.analysis.get_free_float(code, range) -> FreeFloatResponse
+```
+
+**Stock Free Float** — `GET /analysis/free-float/{code}` — cache `default`
+
+Get the issuer's monthly free float share data for a specific period.
+
+| Parameter | Tipe | Wajib | Default | Keterangan |
+|---|---|---|---|---|
+| `code` | `str` | ya |  | Kode saham emiten yang tercatat di BEI, mis. `BBCA`. Tidak case-sensitive. Daftar kode tersedia di `/analysis/list/stock`. |
+| `range` | `int` | ya |  | Jumlah bulan terakhir yang ditampilkan, mis. `6` untuk 6 bulan terakhir. Akun TRIAL dibatasi maksimal 12 bulan. |
+
+Return: `FreeFloatResponse`
 
 
 ### analysis.get_summary_stock
@@ -1210,6 +1230,25 @@ Get chart data for key statistics visualization for a specific period.
 Return: `KeystatChartResponse`
 
 
+### analysis.get_flow_of_funds
+
+```python
+client.analysis.get_flow_of_funds(code, type, limit=None) -> FlowOfFundsResponse
+```
+
+**Stock Flow of Funds** — `GET /analysis/flow-of-funds/{code}` — cache `default`
+
+Get a company's income statement flow of funds (Sankey) per period: revenue by product/service, cost of revenue and its breakdown, operating expenses, operating profit, profit before tax, tax, net profit and profit attributable to the parent.
+
+| Parameter | Tipe | Wajib | Default | Keterangan |
+|---|---|---|---|---|
+| `code` | `str` | ya |  | Kode saham emiten yang tercatat di BEI, mis. `BBCA`. Tidak case-sensitive. Daftar kode tersedia di `/analysis/list/stock`. |
+| `type` | `FlowOfFundsType ("FY", "Q", "Q1", "Q2", "Q3", "Q4")` | ya |  | Periode laporan: `FY` = tahunan, `Q` = seluruh kuartal, `Q1`–`Q4` = kuartal tertentu. |
+| `limit` | `int` | tidak | `8` | Jumlah periode terakhir yang ditampilkan. |
+
+Return: `FlowOfFundsResponse`
+
+
 ### analysis.get_calendar
 
 ```python
@@ -1252,18 +1291,19 @@ Return: `NewsResponse`
 ### analysis.get_disclosure
 
 ```python
-client.analysis.get_disclosure(page=None, limit=None, code=None) -> DisclosureResponse
+client.analysis.get_disclosure(page=None, limit=None, code=None, type=None) -> DisclosureResponse
 ```
 
 **Stock Disclosure Information** — `GET /analysis/disclosure` — cache `default`
 
-Get the IDX disclosure listing (REPORT-category posts).
+Get the IDX disclosure listing.
 
 | Parameter | Tipe | Wajib | Default | Keterangan |
 |---|---|---|---|---|
 | `page` | `int` | tidak | `1` | Nomor halaman, dimulai dari 1. |
 | `limit` | `int` | tidak | `20` | Jumlah data per halaman, 1-100. |
 | `code` | `str` | tidak |  | Filter kode saham, mis. `BBCA` (opsional). |
+| `type` | `DisclosureType ("shareholder", "financial", "rups", "volatility_explanation", "press_release", "public_expose", "right_issue", "dividen", "ad_publication", "use_of_proceeds", "exchange_clarification", "trading_suspension", "operational_report", "annual_report", "financial_info", "rating", "structured_warrant", "bond", "management", "buyback", "ownership", "capital_action", "public_offering", "material_transaction", "agreement", "corporate_group", "articles_identity", "legal", "material_info", "other")` | tidak |  | Filter tipe laporan (opsional, huruf besar/kecil bebas). |
 
 Return: `DisclosureResponse`
 

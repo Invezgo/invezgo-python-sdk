@@ -626,7 +626,7 @@ class AnalysisResource:
         
         Historical Parameters:
         - date: Date in YYYY-MM-DD format (optional, minimum 2026-03-25)
-        - time: Time in HH:MM format with minute precision (optional)
+        - time: WIB time in HH:MM or HH:MM:SS format (optional); nearest snapshot on that date
         - Note: date and time MUST be filled together or both empty
         
         Update: Real-time (without date/time) or Historical (with date/time)
@@ -639,7 +639,7 @@ class AnalysisResource:
             code: Kode saham emiten yang tercatat di BEI, mis. `BBCA`. Tidak case-sensitive. Daftar kode tersedia di `/analysis/list/stock`. (path)
             market: Jenis pasar: `RG` = Pasar Reguler, `NG` = Pasar Negosiasi, `TN` = Pasar Tunai. Gunakan `RG` untuk analisis pergerakan harga pada umumnya. (required)
             date: Tanggal order book historis (`YYYY-MM-DD`), tersedia mulai `2026-03-25`. Wajib dikirim bersama `time`; kosongkan keduanya untuk data realtime. (optional)
-            time: Jam snapshot order book dalam WIB, format `HH:mm` pada jam perdagangan (09:00–15:59). Wajib dikirim bersama `date`. (optional)
+            time: Jam snapshot order book dalam WIB, format `HH:mm` atau `HH:mm:ss` pada jam perdagangan (09:00–15:59); mengembalikan snapshot terdekat pada tanggal tersebut. Wajib dikirim bersama `date`. (optional)
         
         Returns:
             OrderBookResponse
@@ -1283,6 +1283,8 @@ class AnalysisResource:
         Response:
         - code: Stock code
         - date: Data date (WIB (UTC+7) DateTime, e.g. 2026-10-16T00:00:00.000Z = 16 Oct 2026 00:00 WIB; the Z suffix does not mean UTC, do not convert the time zone); the latest `range` monthly periods, oldest first
+        - local_{xx} / foreign_{xx}: Shares held by domestic / foreign investors for each classification code {xx} below (e.g. local_bk, foreign_bk) (shares, string)
+        - {xx}: local_{xx} + foreign_{xx} (shares, string)
         - bk: Shares held by Bank investors (shares, string)
         - gv: Shares held by Government investors (shares, string)
         - pe: Shares held by Private Equity investors (shares, string)
@@ -1322,6 +1324,8 @@ class AnalysisResource:
         - is: Shares held by Insurance investors (shares, string)
         - fd: Shares held by Foundation investors (shares, string)
         - in: Shares held by Individual investors (shares, string)
+        - total_foreign: Total shares held by foreign investors (shares, string)
+        - total_local: Total shares held by domestic investors (shares, string)
         - total: Total shares across all classifications (shares, string)
         
         Investor Classification:
@@ -1391,6 +1395,8 @@ class AnalysisResource:
         
         Response:
         - code: Stock code (response is a single latest-record object, without a date field; null if no data)
+        - local_{xx} / foreign_{xx}: Shares held by domestic / foreign investors for each classification code {xx} below (e.g. local_bk, foreign_bk) (shares, string)
+        - {xx}: local_{xx} + foreign_{xx} (shares, string)
         - bk: Shares held by Bank investors (shares, string)
         - gv: Shares held by Government investors (shares, string)
         - pe: Shares held by Private Equity investors (shares, string)
@@ -1430,6 +1436,8 @@ class AnalysisResource:
         - is: Shares held by Insurance investors (shares, string)
         - fd: Shares held by Foundation investors (shares, string)
         - in: Shares held by Individual investors (shares, string)
+        - total_foreign: Total shares held by foreign investors (shares, string)
+        - total_local: Total shares held by domestic investors (shares, string)
         - total: Total shares across all classifications (shares, string)
         
         Investor Classification:
@@ -1487,6 +1495,55 @@ class AnalysisResource:
         """
         data = self._t.request("GET", "/analysis/shareholder/classify-table/{code}", path={"code": code}, query=None, body=None, cache="default")
         return cast("Optional[ShareholderClassifyTableResponse]", data)
+
+    def get_free_float(
+        self,
+        code: str,
+        range: int,
+    ) -> FreeFloatResponse:
+        """Stock Free Float.
+        
+        Get the issuer's monthly free float share data for a specific period.
+        
+        Response:
+        - code: Stock code
+        - date: Data date (WIB (UTC+7) DateTime, e.g. 2026-10-16T00:00:00.000Z = 16 Oct 2026 00:00 WIB; the Z suffix does not mean UTC, do not convert the time zone); the latest `range` monthly periods, oldest first
+        - public: Scripless shares held by all shareholders with less than 5% (shares, string)
+        - management: Scripless shares held by the Board of Directors and Commissioners, less than 5% (shares, string)
+        - controller: Scripless shares held by the Controller, less than 5% (shares, string)
+        - affiliate: Scripless shares held by Affiliates of the Controller, less than 5% (shares, string)
+        - treasury: Scripless treasury shares, less than 5% (shares, string)
+        - lock_up: Shares under a transfer restriction (lock up), less than 5% (shares, string)
+        - private: Scripless shares held by Venture Capital and Private Equity firms, less than 5% (shares, string)
+        - law: Scripless shares seized or blocked by law enforcement or a competent authority, less than 5% (shares, string)
+        - other: Shares whose beneficial owners are public investors approved by the Exchange to count as Free Float (shares, string)
+        - total: Free Float shares (shares, string)
+        - share: Shares listed on the Exchange at month end (shares, string)
+        - free: Free Float percentage (%, number, e.g. 48.01)
+        - not_record_value_prev: Unlisted shares, previous month (shares, string; null if absent)
+        - not_record_pct_prev: Unlisted shares percentage, previous month (%, number; null if absent)
+        - not_record_value_next: Unlisted shares, current month (shares, string; null if absent)
+        - not_record_pct_next: Unlisted shares percentage, current month (%, number; null if absent)
+        
+        Update: Monthly according to each company's report
+        
+        Initial Data: 2026-09-01 [ENTERPRISE]
+        
+        HTTP: ``GET /analysis/free-float/{code}``
+        Cache tier: ``default``
+        
+        Args:
+            code: Kode saham emiten yang tercatat di BEI, mis. `BBCA`. Tidak case-sensitive. Daftar kode tersedia di `/analysis/list/stock`. (path)
+            range: Jumlah bulan terakhir yang ditampilkan, mis. `6` untuk 6 bulan terakhir. Akun TRIAL dibatasi maksimal 12 bulan. (required, min ``1``, max ``36``)
+        
+        Returns:
+            FreeFloatResponse
+        
+        Raises:
+            InvezgoError: on any API error (see ``invezgo.exceptions``); RateLimitError when every API key is rate limited.
+        """
+        data = self._t.request("GET", "/analysis/free-float/{code}", path={"code": code}, query={"range": range}, body=None, cache="default")
+        return cast("FreeFloatResponse", data)
 
     def get_summary_stock(
         self,
@@ -2664,6 +2721,8 @@ class AnalysisResource:
         
         Get company financial statement data based on report type and specific period.
         
+        Income statement (IS) and cash flow (CF) periods are cumulative from the start of the fiscal year (year to date), as officially filed with IDX: Q1 = 3 months, Q2 = 6 months, Q3 = 9 months, FY = 12 months; values are not netted against the previous period. Balance sheet (BS) values are balances at period end.
+        
         Response:
         - columns: List of report periods from the latest, up to `limit` periods (default 8); null if there are no reports, each item contains:
           - label: Period label, e.g. "Q2 2025" or "FY 2024"
@@ -2719,6 +2778,8 @@ class AnalysisResource:
         
         Get chart data for financial statement visualization for a specific period.
         
+        Income statement (IS) and cash flow (CF) periods are cumulative from the start of the fiscal year (year to date), as officially filed with IDX: Q1 = 3 months, Q2 = 6 months, Q3 = 9 months, FY = 12 months; values are not netted against the previous period. Balance sheet (BS) values are balances at period end.
+        
         Response:
         - account_id: Charted account ID (matches the `account` parameter); null if the account is not found
         - name: Financial statement account name; null if the account is not found
@@ -2762,6 +2823,8 @@ class AnalysisResource:
         """Stock Key Statistics.
         
         Get key statistics and important financial metrics of a company for a specific period.
+        
+        The source is the issuer's official IDX financial report, which is cumulative from the start of the fiscal year (year to date): Q1 = 3 months, Q2 = 6 months, Q3 = 9 months, FY = 12 months. Statistics ending in (Quarter) use a single quarter: income statement and cash flow items = the cumulative report less the previous quarter's cumulative report, balance sheet items = period-end balances. (TTM) = trailing 12 months, (Annualised) = year to date annualised.
         
         Response:
         - columns: List of report periods from the latest, up to `limit` periods (default 8); null if there are no reports, each item contains:
@@ -2812,6 +2875,8 @@ class AnalysisResource:
         
         Get chart data for key statistics visualization for a specific period.
         
+        The source is the issuer's official IDX financial report, which is cumulative from the start of the fiscal year (year to date): Q1 = 3 months, Q2 = 6 months, Q3 = 9 months, FY = 12 months. Statistics ending in (Quarter) use a single quarter: income statement and cash flow items = the cumulative report less the previous quarter's cumulative report, balance sheet items = period-end balances. (TTM) = trailing 12 months, (Annualised) = year to date annualised.
+        
         Response:
         - name: Key statistic name (matches the `name` parameter); null if there are no periods
         - points: Data points per period from the latest, up to `limit` periods (max 8 for quarterly, 3 for FY); null if there are no periods, each item contains:
@@ -2842,6 +2907,56 @@ class AnalysisResource:
         """
         data = self._t.request("GET", "/analysis/keystat-chart/{code}", path={"code": code}, query={"type": type, "name": name, "limit": limit}, body=None, cache="default")
         return cast("KeystatChartResponse", data)
+
+    def get_flow_of_funds(
+        self,
+        code: str,
+        type: FlowOfFundsType,
+        *,
+        limit: Optional[int] = None,
+    ) -> FlowOfFundsResponse:
+        """Stock Flow of Funds.
+        
+        Get a company's income statement flow of funds (Sankey) per period: revenue by product/service, cost of revenue and its breakdown, operating expenses, operating profit, profit before tax, tax, net profit and profit attributable to the parent.
+        
+        The structure and direction of every flow follow the calculation arcs of the issuer's IDX XBRL taxonomy industry template. Revenue detail comes from the revenue-by-type note and cost detail from the cost of goods sold note.
+        
+        Each period is cumulative from the start of the fiscal year (year to date), as officially filed with IDX and the same as financial-statement: Q1 = 3 months, Q2 = 6 months, Q3 = 9 months, FY = 12 months; values are not netted against the previous period. type=Q lists the quarterly reports (Q1-Q3) without the annual report.
+        
+        Response:
+        - columns: Periods from the latest (label, year, period)
+        - role: IDX taxonomy income statement role used, e.g. "1321000"
+        - sector: Industry template (general, property, infrastructure, financesharia, securities, insurance, financing)
+        - currency: Currency of the values (IDR)
+        - periods: Flow of funds per period, same order as `columns`, each item contains:
+          - label, year, period: Report period, e.g. "Q2 2026" (6 months) or "FY 2025"
+          - basis: quarter (Q1, 3 months), ytd (Q2/Q3, cumulative from the start of the fiscal year), annual (FY)
+          - nodes: Nodes (id, taxonomy concept, label_id, label_en, kind: revenue|cost|income|profit|loss|offset, value)
+          - links: Flows between nodes (source, target, value > 0); every node balances (in = out)
+          - bridge: Operating profit to net profit bridge (id, label_id, label_en, kind: total|delta, value)
+          - checks: Reconciliation of the detail against the statement: statement, segments, cogs (ok, residual, mismatch, none) and unmapped_rows
+        
+        Update: Real-time according to each company's report
+        
+        Limited to data for the last 2 years
+        Initial Data: 2020-01-01 [ENTERPRISE]
+        
+        HTTP: ``GET /analysis/flow-of-funds/{code}``
+        Cache tier: ``default``
+        
+        Args:
+            code: Kode saham emiten yang tercatat di BEI, mis. `BBCA`. Tidak case-sensitive. Daftar kode tersedia di `/analysis/list/stock`. (path)
+            type: Periode laporan: `FY` = tahunan, `Q` = seluruh kuartal, `Q1`–`Q4` = kuartal tertentu. (required)
+            limit: Jumlah periode terakhir yang ditampilkan. (optional, default ``8``, min ``1``, max ``8``)
+        
+        Returns:
+            FlowOfFundsResponse
+        
+        Raises:
+            InvezgoError: on any API error (see ``invezgo.exceptions``); RateLimitError when every API key is rate limited.
+        """
+        data = self._t.request("GET", "/analysis/flow-of-funds/{code}", path={"code": code}, query={"type": type, "limit": limit}, body=None, cache="default")
+        return cast("FlowOfFundsResponse", data)
 
     def get_calendar(
         self,
@@ -2927,20 +3042,24 @@ class AnalysisResource:
         page: Optional[int] = None,
         limit: Optional[int] = None,
         code: Optional[str] = None,
+        type: Optional[DisclosureType] = None,
     ) -> DisclosureResponse:
         """Stock Disclosure Information.
         
-        Get the IDX disclosure listing (REPORT-category posts).
+        Get the IDX disclosure listing.
         
         Response:
         - totalPage: Total pages based on limit
         - page: Current page
         - nextPage: Next page number, null on the last page
         - data: IDX disclosure list (newest first), each item contains:
+          - id: Report id
           - title: Report title
           - code: Issuer stock code
           - date: Publication time in WIB, format YYYY-MM-DDTHH:MM:SS
           - type: Report type (e.g. public_expose)
+          - description: Report description, null when absent
+          - summary: Report summary points
           - list: Attachment file list, each item contains:
             - url: Attachment file URL on IDX
             - name: Attachment file name
@@ -2954,6 +3073,7 @@ class AnalysisResource:
             page: Nomor halaman, dimulai dari 1. (optional, default ``1``, min ``1``)
             limit: Jumlah data per halaman, 1-100. (optional, default ``20``, min ``1``, max ``100``)
             code: Filter kode saham, mis. `BBCA` (opsional). (optional)
+            type: Filter tipe laporan (opsional, huruf besar/kecil bebas). (optional)
         
         Returns:
             DisclosureResponse
@@ -2961,7 +3081,7 @@ class AnalysisResource:
         Raises:
             InvezgoError: on any API error (see ``invezgo.exceptions``); RateLimitError when every API key is rate limited.
         """
-        data = self._t.request("GET", "/analysis/disclosure", path=None, query={"page": page, "limit": limit, "code": code}, body=None, cache="default")
+        data = self._t.request("GET", "/analysis/disclosure", path=None, query={"page": page, "limit": limit, "code": code, "type": type}, body=None, cache="default")
         return cast("DisclosureResponse", data)
 
 
@@ -3503,7 +3623,7 @@ class UsageResource:
             from_: Waktu awal dalam WIB, format `YYYY-MM-DD HH:mm:ss` atau `YYYY-MM-DD`. Maksimal 30 hari ke belakang. Default 24 jam terakhir. (optional)
             to: Waktu akhir dalam WIB, format `YYYY-MM-DD HH:mm:ss` atau `YYYY-MM-DD`. Harus lebih besar atau sama dengan `from`. Default waktu saat ini. (optional)
             status: Filter log berdasarkan HTTP status code, mis. `200`, `422`, atau `429`. (optional, min ``100``, max ``599``)
-            limit: Jumlah log maksimal yang dikembalikan. Kosongkan untuk mengambil seluruh log. (optional, min ``1``, max ``320000``)
+            limit: Jumlah log maksimal yang dikembalikan. Kosongkan untuk mengambil seluruh log. (optional, min ``1``, max ``520000``)
         
         Returns:
             UsageLogsResponse
