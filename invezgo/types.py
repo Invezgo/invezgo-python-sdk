@@ -8,11 +8,11 @@ from typing_extensions import NotRequired, TypedDict
 class ScreenRequest(TypedDict):
     """``ScreenRequest`` object."""
 
-    #: Formula untuk screening saham
+    #: Formula untuk screening saham - Mengacu pada [Variabel Formula](https://docs.invezgo.com/features/formula-variables/)
     formula: str
 
     #: Kategori indeks saham yang ingin disaring (opsional, bisa multi seperti ["SYARIAH", "IDXENERGY"])
-    category: NotRequired[Optional[List[str]]]
+    category: NotRequired[List[Literal["COMPOSITE", "SYARIAH", "IDXENERGY", "IDXBASIC", "IDXINDUST", "IDXNONCYC", "IDXCYCLIC", "IDXHEALTH", "IDXFINANCE", "IDXPROPERT", "IDXTECHNO", "IDXINFRA", "IDXTRANS"]]]
 
 
 class SaveScreenerRequest(TypedDict):
@@ -20,14 +20,14 @@ class SaveScreenerRequest(TypedDict):
 
     name: str
 
-    description: NotRequired[Optional[str]]
+    description: NotRequired[str]
 
-    scope: NotRequired[Optional[List[str]]]
+    scope: NotRequired[List[str]]
 
     formula: str
 
     #: Kategori indeks saham yang ingin disaring (opsional, bisa multi seperti ["SYARIAH", "IDXENERGY"])
-    category: NotRequired[Optional[List[str]]]
+    category: NotRequired[List[Literal["COMPOSITE", "SYARIAH", "IDXENERGY", "IDXBASIC", "IDXINDUST", "IDXNONCYC", "IDXCYCLIC", "IDXHEALTH", "IDXFINANCE", "IDXPROPERT", "IDXTECHNO", "IDXINFRA", "IDXTRANS"]]]
 
 
 class UpdateScreenerRequest(TypedDict):
@@ -35,14 +35,14 @@ class UpdateScreenerRequest(TypedDict):
 
     name: str
 
-    description: NotRequired[Optional[str]]
+    description: NotRequired[str]
 
-    scope: NotRequired[Optional[List[str]]]
+    scope: NotRequired[List[str]]
 
     formula: str
 
     #: Kategori indeks saham yang ingin disaring (opsional, bisa multi seperti ["SYARIAH", "IDXENERGY"])
-    category: NotRequired[Optional[List[str]]]
+    category: NotRequired[List[Literal["COMPOSITE", "SYARIAH", "IDXENERGY", "IDXBASIC", "IDXINDUST", "IDXNONCYC", "IDXCYCLIC", "IDXHEALTH", "IDXFINANCE", "IDXPROPERT", "IDXTECHNO", "IDXINFRA", "IDXTRANS"]]]
 
 
 class AddWatchlistRequest(TypedDict):
@@ -54,7 +54,7 @@ class AddWatchlistRequest(TypedDict):
 
     price: float
 
-    note: NotRequired[Optional[str]]
+    note: NotRequired[str]
 
     scope: List[str]
 
@@ -76,7 +76,7 @@ class UpdateWatchlistRequest(TypedDict):
 class NoteRequest(TypedDict):
     """``NoteRequest`` object."""
 
-    note: NotRequired[Optional[str]]
+    note: NotRequired[str]
 
 
 class AddJournalRequest(TypedDict):
@@ -94,17 +94,17 @@ class AddJournalRequest(TypedDict):
 
     price: float
 
-    status: NotRequired[Optional[str]]
+    status: NotRequired[Literal["BUY", "SELL"]]
 
     scope: List[str]
 
-    note: NotRequired[Optional[str]]
+    note: Optional[str]
 
 
 class NoteJournalRequest(TypedDict):
     """``NoteJournalRequest`` object."""
 
-    note: NotRequired[Optional[str]]
+    note: NotRequired[str]
 
 
 class AlertRequest(TypedDict):
@@ -112,19 +112,22 @@ class AlertRequest(TypedDict):
 
     name: str
 
-    description: NotRequired[Optional[str]]
+    description: NotRequired[str]
 
     #: Kategori indeks saham yang ingin disaring (opsional, bisa multi seperti ["SYARIAH", "IDXENERGY"])
-    category: NotRequired[Optional[List[str]]]
+    category: NotRequired[List[Literal["COMPOSITE", "SYARIAH", "IDXENERGY", "IDXBASIC", "IDXINDUST", "IDXNONCYC", "IDXCYCLIC", "IDXHEALTH", "IDXFINANCE", "IDXPROPERT", "IDXTECHNO", "IDXINFRA", "IDXTRANS"]]]
 
-    every: str
+    every: Literal["FOURTY_FIVE_SECONDS", "ONE_MINUTE", "FIVE_MINUTES", "TEN_MINUTES", "THIRTY_MINUTES", "ONE_HOUR", "END_SESSION", "END_OF_DAY"]
 
-    send: str
+    send: Literal["IN_OUT", "IN", "OUT"]
 
-    scope: NotRequired[Optional[List[str]]]
+    scope: NotRequired[List[str]]
 
-    #: Formula alert (sama dengan batas formula screener)
+    #: Formula alert, maksimal 2048 karakter (sama dengan formula screener)
     formula: str
+
+    #: Tujuan pengiriman alert. TELEGRAM (default), WEBHOOK (webhook akun, domain `alert`), atau MCP (MCP Events untuk agen AI). WEBHOOK dan MCP membutuhkan paket PRIME, MAX, atau ELITE.
+    channel: NotRequired[Literal["TELEGRAM", "WEBHOOK", "MCP"]]
 
 
 class TestAlertRequest(TypedDict):
@@ -133,7 +136,7 @@ class TestAlertRequest(TypedDict):
     formula: str
 
     #: Kategori indeks saham yang ingin disaring (opsional, bisa multi seperti ["SYARIAH", "IDXENERGY"])
-    category: NotRequired[Optional[List[str]]]
+    category: NotRequired[List[Literal["COMPOSITE", "SYARIAH", "IDXENERGY", "IDXBASIC", "IDXINDUST", "IDXNONCYC", "IDXCYCLIC", "IDXHEALTH", "IDXFINANCE", "IDXPROPERT", "IDXTECHNO", "IDXINFRA", "IDXTRANS"]]]
 
 
 class UpdateAlertRequest(TypedDict):
@@ -141,25 +144,28 @@ class UpdateAlertRequest(TypedDict):
 
     name: str
 
-    description: NotRequired[Optional[str]]
+    description: NotRequired[str]
 
     #: Kategori indeks saham yang ingin disaring (opsional, bisa multi seperti ["SYARIAH", "IDXENERGY"])
-    category: NotRequired[Optional[List[str]]]
+    category: NotRequired[List[Literal["COMPOSITE", "SYARIAH", "IDXENERGY", "IDXBASIC", "IDXINDUST", "IDXNONCYC", "IDXCYCLIC", "IDXHEALTH", "IDXFINANCE", "IDXPROPERT", "IDXTECHNO", "IDXINFRA", "IDXTRANS"]]]
 
-    every: str
+    every: Literal["FOURTY_FIVE_SECONDS", "ONE_MINUTE", "FIVE_MINUTES", "TEN_MINUTES", "THIRTY_MINUTES", "ONE_HOUR", "END_SESSION", "END_OF_DAY"]
 
-    send: str
+    send: Literal["IN_OUT", "IN", "OUT"]
 
-    #: Formula alert (sama dengan batas formula screener)
+    #: Formula alert, maksimal 2048 karakter (sama dengan formula screener)
     formula: str
 
-    scope: NotRequired[Optional[List[str]]]
+    scope: NotRequired[List[str]]
+
+    #: Tujuan pengiriman alert. TELEGRAM (default), WEBHOOK (webhook akun, domain `alert`), atau MCP (MCP Events untuk agen AI). WEBHOOK dan MCP membutuhkan paket PRIME, MAX, atau ELITE. Jika tidak dikirim, channel alert tidak berubah.
+    channel: NotRequired[Literal["TELEGRAM", "WEBHOOK", "MCP"]]
 
 
 class NoteTradeRequest(TypedDict):
     """``NoteTradeRequest`` object."""
 
-    note: NotRequired[Optional[str]]
+    note: NotRequired[str]
 
 
 class DeleteIdsRequest(TypedDict):
@@ -869,6 +875,9 @@ class OrderBookResponse(TypedDict):
     #: Stock code; carries the market suffix when market is not RG (e.g. BBCANG)
     code: str
 
+    #: Time of the data in WIB (UTC+7), not UTC. Live data shows when it was retrieved; stored data shows when it was recorded. Null when no data is available.
+    date: Optional[str]
+
     #: Buy queue levels, ordered from level 1 (best bid)
     bid: List[Dict[str, Optional[float]]]
 
@@ -909,6 +918,9 @@ class IntradayDataResponse(TypedDict):
 
     #: Stock code (without market suffix)
     code: str
+
+    #: Time of the data in WIB (UTC+7), not UTC. Live data shows when it was retrieved; stored data shows when it was recorded, or 16:15 (market close) for daily data. Null when no data is available.
+    date: Optional[str]
 
     #: Opening price (Rupiah)
     open: Optional[float]
@@ -967,6 +979,9 @@ class IntradayIndexResponse(TypedDict):
 
     #: Index code
     code: str
+
+    #: Time of the data in WIB (UTC+7), not UTC. Live data shows when it was retrieved; stored data shows 16:15 (market close) of that trading day. Null when no data is available.
+    date: Optional[str]
 
     #: Index opening value; may be a numeric string outside trading hours
     open: Optional[Union[float, str]]
@@ -3050,6 +3065,9 @@ class BatchOrderBookItem(TypedDict):
     #: Stock code; may carry the market suffix when market is not RG (e.g. BBCANG); empty string when not available
     code: str
 
+    #: Time of the data in WIB (UTC+7), not UTC. Live data shows when it was retrieved; stored data shows when it was recorded. Null when no data is available.
+    date: Optional[str]
+
     #: Buy queue levels, ordered from level 1 (best bid)
     bid: List[Dict[str, Optional[float]]]
 
@@ -3062,6 +3080,9 @@ class BatchIntradayDataItem(TypedDict):
 
     #: Stock code (carries the market suffix when market is not RG)
     code: str
+
+    #: Time of the data in WIB (UTC+7), not UTC. Live data shows when it was retrieved; stored data shows 16:15 (market close) of that trading day. Null when no data is available.
+    date: Optional[str]
 
     #: Opening price (Rupiah)
     open: Optional[float]
@@ -3120,6 +3141,9 @@ class BatchIntradayIndexItem(TypedDict):
 
     #: Index code
     code: str
+
+    #: Time of the data in WIB (UTC+7), not UTC. Live data shows when it was retrieved; stored data shows 16:15 (market close) of that trading day. Null when no data is available.
+    date: Optional[str]
 
     #: Index opening value
     open: Optional[float]

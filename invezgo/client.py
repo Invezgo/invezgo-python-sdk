@@ -7,6 +7,7 @@ import requests
 
 from ._cache import CacheOptions
 from ._transport import Transport
+from .realtime import RealtimeClient
 from .resources import ResourcesMixin
 
 DEFAULT_BASE_URL = "https://api.invezgo.com"
@@ -51,6 +52,16 @@ class InvezgoClient(ResourcesMixin):
         self._owns_session = session is None
         self._transport = Transport([api_key, *additional_api_keys], base_url, timeout, options, session)
         self._init_resources(self._transport)
+
+    def realtime(self, *, reconnect: bool = True) -> RealtimeClient:
+        """Create a WebSocket client using this client's primary API key; the URL is derived from
+        ``base_url`` (``https`` -> ``wss``, ``http`` -> ``ws``, plus ``/ws``).
+
+        Requires ``pip install "invezgo-sdk[ws]"``. Use with ``async with client.realtime() as rt:``.
+        """
+        base = self._transport.base_url
+        url = "ws" + base[4:] if base.startswith("http") else base  # https->wss, http->ws
+        return RealtimeClient(self._transport.keys[0], url=url + "/ws", reconnect=reconnect)
 
     def clear_cache(self) -> None:
         """Drop every cached response."""

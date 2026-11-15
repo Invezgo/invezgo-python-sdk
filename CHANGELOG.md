@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `verify_webhook(raw_body, headers, secret, *, signature=None, timestamp=None, tolerance=300, now=None)` and `parse_webhook(raw_body)`: HMAC-SHA256 webhook verification returning a `WebhookEvent`; failures raise `WebhookVerificationError` (`reason`: `timestamp`, `signature`, `payload`). Stdlib only.
+- `client.realtime()` / `RealtimeClient`: asyncio WebSocket client for running trade and order book (`async with` + `async for`), with queued subscriptions, auto-reconnect with subscription replay and typed messages. Requires the new optional extra `invezgo-sdk[ws]` (`websockets>=14`).
+
 ## [3.1.0] - 2026-11-11
 
 Regenerated from the latest OpenAPI spec (Invezgo API 1.2, 109 endpoints).

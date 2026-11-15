@@ -20,6 +20,8 @@ SDK resmi untuk [Invezgo API](https://invezgo.com), penyedia data pasar modal In
 - [Rotasi API Key](#rotasi-api-key)
 - [Penanganan Error](#penanganan-error)
 - [Pagination](#pagination)
+- [Webhook](#webhook)
+- [WebSocket (Real-time)](#websocket-real-time)
 - [Praktik yang Disarankan](#praktik-yang-disarankan)
 - [Pengembangan](#pengembangan)
 - [Dukungan](#dukungan)
@@ -30,7 +32,7 @@ SDK resmi untuk [Invezgo API](https://invezgo.com), penyedia data pasar modal In
 - Python 3.9 atau lebih baru
 - API key Invezgo, dapat dibuat di [halaman pengaturan API](https://invezgo.com/id/setting/api)
 
-Dependency runtime hanya `requests` dan `typing_extensions`. Client bersifat thread-safe.
+Dependency runtime hanya `requests` dan `typing_extensions`. Client WebSocket memerlukan dependency opsional `websockets`. Client bersifat thread-safe.
 
 ## Instalasi
 
@@ -274,6 +276,73 @@ while page is not None:
         print(item["title"])
     page = res["nextPage"]
 ```
+
+## Webhook
+
+Fungsi `verify_webhook` memverifikasi signature HMAC-SHA256 dan timestamp setiap pengiriman webhook, lalu mengembalikan `WebhookEvent`. Fungsi ini hanya menggunakan standard library dan tidak memerlukan API key maupun client. Gunakan body mentah request, bukan JSON yang sudah di-parse ulang.
+
+```python
+import os
+
+from flask import Flask, abort, request
+from invezgo import WebhookVerificationError, verify_webhook
+
+app = Flask(__name__)
+
+@app.post("/webhooks/invezgo")
+def invezgo_webhook():
+    try:
+        event = verify_webhook(request.get_data(), request.headers, os.environ["INVEZGO_WEBHOOK_SECRET"])
+    except WebhookVerificationError as e:
+        abort(400 if e.reason == "timestamp" else 401)
+
+    if event.name == "update.summary":
+        print(event.data["date"], event.data["path"])
+    return "", 204
+```
+
+- Header `X-Invezgo-Timestamp` dan `X-Invezgo-Signature` dibaca tanpa membedakan huruf besar dan kecil. Nilai keduanya juga dapat diberikan langsung melalui argumen `signature` dan `timestamp`.
+- Timestamp yang selisihnya lebih dari `tolerance` (bawaan 300 detik) dari waktu saat ini ditolak.
+- `WebhookVerificationError.reason` bernilai `timestamp`, `signature`, atau `payload`.
+- `WebhookEvent` memiliki atribut `id`, `domain`, `type`, `created_at`, `data`, dan `name` (`"{domain}.{type}"`). Struktur `data` per event tersedia sebagai TypedDict di `invezgo.webhook`, misalnya `WebhookUpdateData` dan `WebhookQuotaData`.
+- `parse_webhook(raw_body)` mendekode body tanpa verifikasi, untuk pengujian atau body yang sudah diverifikasi.
+
+## WebSocket (Real-time)
+
+Client WebSocket menerima running trade dan order book secara real-time (paket Elite). Fitur ini memerlukan dependency opsional:
+
+```bash
+pip install "invezgo-sdk[ws]"
+```
+
+```python
+import asyncio
+import os
+
+from invezgo import InvezgoClient
+
+async def main() -> None:
+    client = InvezgoClient(os.environ["INVEZGO_API_KEY"])
+    async with client.realtime() as rt:
+        await rt.subscribe_trades(["BBCA", "TLKM"], min_lot=500)
+        await rt.subscribe_orderbook(["BBCA"])
+        async for msg in rt:
+            if msg["type"] == "trades":
+                for trade in msg["data"]:
+                    print(trade["code"], trade["price"], trade["lot"], trade["side"])
+            elif msg["type"] == "orderbook":
+                print(msg["code"], msg["side"], msg["levels"])
+            elif msg["type"] == "reconnect":
+                pass  # ambil data yang terlewat melalui REST API
+
+asyncio.run(main())
+```
+
+- URL diturunkan dari `base_url` (`wss://api.invezgo.com/ws`). Client juga dapat dibuat langsung dengan `RealtimeClient(api_key, url=..., reconnect=True)`.
+- API key dikirim melalui header `Authorization`, tidak pernah melalui URL.
+- Langganan yang dibuat sebelum koneksi siap akan dikirim setelah pesan `connected`, dan dikirim ulang setiap kali koneksi tersambung kembali.
+- Koneksi yang terputus disambung ulang otomatis dengan jeda 1, 2, 4, 8, 16, hingga 30 detik, dan pesan `{"type": "reconnect"}` dikirim sebelum setiap percobaan. Gunakan `reconnect=False` untuk menonaktifkannya. Penolakan handshake 401 (`AuthenticationError`), 403 (`PaymentRequiredError`), serta kode penutupan 4400 tidak disambung ulang.
+- Method yang tersedia: `subscribe_trades(codes=None, *, min_lot=None, min_value=None)`, `subscribe_orderbook(codes)`, `unsubscribe(channel, codes=None)`, `ping()`, dan `close()`. Batas per koneksi adalah 200 kode running trade dan 20 kode order book.
 
 ## Praktik yang Disarankan
 

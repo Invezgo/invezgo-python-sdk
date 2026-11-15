@@ -34,6 +34,9 @@ dependencies = [
     "typing-extensions>=4.7.0",
 ]
 
+[project.optional-dependencies]
+ws = ["websockets>=14"]
+
 [project.urls]
 Homepage = "https://invezgo.com"
 Documentation = "https://api.invezgo.com/documentation"

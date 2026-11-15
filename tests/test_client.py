@@ -164,7 +164,7 @@ class CacheTest(unittest.TestCase):
         client.portfolios.list()
         client.analysis.get_stock_list()
         client.journals.add({"code": "BBCA", "broker": "YP", "date": "2024-01-02", "lot": 1, "fee": 0,
-                             "price": 9000, "scope": []})
+                             "price": 9000, "scope": [], "note": None})
         client.watchlists.list()
         client.portfolios.list()
         client.analysis.get_stock_list()
